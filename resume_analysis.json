@@ -1,0 +1,378 @@
+{
+  "name": "resume_analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "has:attachment"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        0
+      ],
+      "id": "53045f38-daf5-4c11-9a15-84c485fe2dbf",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "obCxVqF4ZecVJBId",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -544,
+        0
+      ],
+      "id": "0169ed91-e0b8-4afa-ac9e-9e2dddbe4206",
+      "name": "Get a message",
+      "webhookId": "dadf2ed6-fcac-4176-b128-9f7de256bc7d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "obCxVqF4ZecVJBId",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.headers.subject }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Related to job ",
+              "description": "If the subject is related to job role."
+            },
+            {
+              "category": "Something else",
+              "description": "If the subject is not related to any job roles "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        -336,
+        0
+      ],
+      "id": "73db9ab1-d8d5-4e1b-a15c-4039327d0fde",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        208
+      ],
+      "id": "7eed31c7-17e3-4710-a97c-34eb727f1328",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rI0MGSCxalGbyIRD",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        208
+      ],
+      "id": "6bc0ed99-8b20-4927-af71-e9db8b56b00d",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -208
+      ],
+      "id": "527280ab-8d13-45cd-badd-32e28285ed78",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "962f2a1a-9a38-4ade-b296-84f963eba02d",
+              "name": "Job details",
+              "value": "=Job Title: Flutter Developer (2+ Years Experience) Job Description:  We are looking for a Flutter Developer with 2 or more years of experience in building high-quality, cross-platform mobile applications. The ideal candidate will have a strong command of Dart, experience integrating REST APIs, and a good understanding of mobile architecture and performance optimization.  You will collaborate closely with our design, product, and backend teams to deliver smooth, responsive, and visually appealing apps for both Android and iOS. This is an excellent opportunity to work on innovative projects, enhance your technical skills, and grow in a fast-paced, collaborative environment.\nRequirements\n2+ years of professional experience in Flutter and Dart.\nStrong understanding of mobile app architecture (MVC, MVVM, etc.).\nExperience integrating REST APIs, Firebase, and third-party libraries.\nFamiliarity with Git, CI/CD pipelines, and Agile/Scrum methodologies.\nExperience with push notifications, in-app purchases, and animations is a plus.\nKnowledge of native Android (Kotlin/Java) or iOS (Swift) development is a plus.\nBachelor’s degree in Computer Science, Software Engineering, or equivalent practical experience.\nPreferred Skills\nExperience deploying apps to Google Play Store and Apple App Store.\nUnderstanding of App Store guidelines and app release processes.\nGood sense of UI/UX and attention to detail.\nFamiliarity with backend integration or Flutter Web/Desktop development.\nTeam player with strong communication and problem-solving skills.\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        -208
+      ],
+      "id": "1ec2f323-504e-4be8-8528-890654468534",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the resume:\n {{ $('Extract from File').item.json.text }}\n\nAnalyze the cureent information from the recieved candidate and score between 0 to 10 the said candidate, 0 meaning not a good fit for the position, 10 being outstanding for the job.\n\nJob title and Description is as follows:\n{{ $json[\"Job details\"] }}\n\nReply by email:\nSend a reply to the candidate to confirm that we have recieved their application and that we will get back to them as soon as possible.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -192
+      ],
+      "id": "58692250-473d-4ad3-ba42-ec04d6146188",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        192,
+        16
+      ],
+      "id": "32a212e6-3489-4480-bc1b-033f88d2cf56",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rI0MGSCxalGbyIRD",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get a message').item.json.headers.from }}",
+        "subject": "Job Application Received ",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        512,
+        96
+      ],
+      "id": "c8b954dc-e4b6-4e76-827a-4e85c54e9c5f",
+      "name": "Send a message in Gmail",
+      "webhookId": "0d75b4f4-844c-42ee-b06e-89feb75d36b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "obCxVqF4ZecVJBId",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"title\": \"CandidateEvalMinimalV2\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"score\": {\n      \"type\": \"number\",\n      \"minimum\": 0,\n      \"maximum\": 100\n    },\n    \"decision\": {\n      \"type\": \"string\"\n    },\n    \"summary\": {\n      \"type\": \"string\"\n    },\n    \"matches\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"gaps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"next_step\": {\n      \"type\": \"string\"\n    },\n    \"email\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"subject\": {\n          \"type\": \"string\"\n        },\n        \"body\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\"subject\", \"body\"]\n    }\n  },\n  \"required\": [\"score\", \"decision\", \"summary\", \"email\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        160
+      ],
+      "id": "a1888112-3ab0-4fd8-9696-64cfa5878fe5",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "sendTo": "muhammadtesting09@gmail.com",
+        "subject": "New Candidate Report  ",
+        "message": "=Hello There, |We have a new candidate report and here are the details: Subject: {{ $json.output.email.subject }}\n\nScore: {{ $json.output.score }}\n\nSummary: {{ $json.output.summary }}\n\nRegards,\nMuhammad Ahmad",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        -192
+      ],
+      "id": "f575eab5-281e-4189-9962-2df5e77d3f47",
+      "name": "Send a message",
+      "webhookId": "bd36dc26-38e4-4dfc-8d46-1e09fb57ee68",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "obCxVqF4ZecVJBId",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9b82e33f-d335-42ae-abc5-00f977acdf84",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "edd8d0d94eb58c4dfb249b594ac07f98f1443b28160be513703cff3d2cf012a6"
+  },
+  "id": "0PQJFNIWWrhYRnpE",
+  "tags": []
+}
